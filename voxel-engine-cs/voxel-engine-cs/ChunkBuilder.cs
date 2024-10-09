@@ -40,9 +40,9 @@ namespace voxel_engine_cs {
             int[,,] tempchunk = new int[chunkSize, chunkSize, chunkSize];
 
             FastNoiseLite noise = new FastNoiseLite();
-            float noiseScale = 1.0f;
-            float vertScale = 1.0f;
-            float threshold = 0.5f;
+            float noiseScale = 3.0f;
+            float vertScale = 4.0f;
+            float threshold = -1f;
 
             int totalBlocks = 0;
             for (int cX = x * chunkSize; cX < (x * chunkSize) + chunkSize; cX++) {
@@ -55,9 +55,6 @@ namespace voxel_engine_cs {
 
                         float floorNoise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cZ * noiseScale) * vertScale);
                         float caveNoise = (int)Math.Round(noise.GetNoise(cX * noiseScale, cY * noiseScale, cZ * noiseScale));
-
-                        floorNoise = 0;
-                        caveNoise = 100;
 
                         if (cY <= floorNoise && caveNoise > threshold) {
                             if (cY == floorNoise) {
@@ -127,25 +124,31 @@ namespace voxel_engine_cs {
                             }
 
                             bool[,,] around = new bool[3, 3, 3];
-                            Array.Clear(around, 0, 3);
+                            for(int g = 0; g < 3; g++) {
+                                for (int h = 0; h < 3; h++) {
+                                    for (int j = 0; j < 3; j++) {
+                                        around[g, h, j] = false;
+                                    }
+                                }
+                            }
 
                             if (b >= 1) {
-                                around[0, 1, 1] = tempchunk[b - 1, c, d] >= 1;
+                                around[0, 1, 1] = tempchunk[b - 1, c, d] >= 0;
                             }
                             if (c >= 1) {
-                                around[1, 0, 1] = tempchunk[b, c - 1, d] >= 1;
+                                around[1, 0, 1] = tempchunk[b, c - 1, d] >= 0;
                             }
                             if (d >= 1) {
-                                around[1, 1, 0] = tempchunk[b, c, d - 1] >= 1;
+                                around[1, 1, 0] = tempchunk[b, c, d - 1] >= 0;
                             }
-                            if (b < 2) {
-                                around[2, 1, 1] = tempchunk[b + 1, c, d] >= 1;
+                            if (b < chunkSize-1) {
+                                around[2, 1, 1] = tempchunk[b + 1, c, d] >= 0;
                             }
-                            if (c < 2) {
-                                around[1, 2, 1] = tempchunk[b, c + 1, d] >= 1;
+                            if (c < chunkSize-1) {
+                                around[1, 2, 1] = tempchunk[b, c + 1, d] >= 0;
                             }
-                            if (d < 2) {
-                                around[1, 1, 2] = tempchunk[b, c, d + 1] >= 1;
+                            if (d < chunkSize-1) {
+                                around[1, 1, 2] = tempchunk[b, c, d + 1] >= 0;
                             }
 
                             // Back (z-)

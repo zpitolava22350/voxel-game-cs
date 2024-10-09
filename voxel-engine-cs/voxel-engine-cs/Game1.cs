@@ -45,23 +45,26 @@ namespace voxel_engine_cs {
             base.Initialize();
             ResourceManager.GraphicsDevice = GraphicsDevice;
 
-            for(int x = -3; x < 4; x++) {
-                for (int y = -3; y < 4; y++) {
-                    for (int z = -3; z < 4; z++) {
-                        //world.chunkGenerateQueue.Enqueue(new Vector3(x, y, z));
+            int size = 2;
+
+            for(int x = -size; x < size+1; x++) {
+                for (int y = -size; y < size+1; y++) {
+                    for (int z = -size; z < size+1; z++) {
+                        world.chunkGenerateQueue.Enqueue(new Vector3(x, y, z));
                     }
                 }
             }
-            world.chunkGenerateQueue.Enqueue(new Vector3(0, -1, 0));
+            //world.chunkGenerateQueue.Enqueue(new Vector3(0, -1, 0));
         }
 
         protected override void LoadContent() {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             font = Content.Load<SpriteFont>("ArialFont");
             world.lighting = Content.Load<Effect>("Lighting");
-            world.fogEnabled = true;
-            world.fogNear = 50;
-            world.fogFar = 550;
+
+            world.FogEnabled = true;
+            world.FogNear = 50;
+            world.FogFar = 550;
 
             world.projectionMatrix = Matrix.CreatePerspectiveFieldOfView(world.player.fieldOfView, GraphicsDevice.Viewport.AspectRatio, 0.1f, 1000f);
 
@@ -78,20 +81,35 @@ namespace voxel_engine_cs {
         }
 
         protected override void Update(GameTime gameTime) {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Tab))
+            float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            IsMouseVisible = !world.player.mouseLock;
+
+            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            world.updateChunks();
+            if (Keyboard.GetState().IsKeyDown(Keys.LeftShift)) {
+                //world.player.movementSpeed = 150f;
+            } else {
+                //world.player.movementSpeed = 40f;
+            }
 
-            // TODO: Add your update logic here
+            world.updatePlayer(deltaTime);
+
+            if (Keyboard.GetState().IsKeyDown(Keys.Space))
+                world.player.yVel += 0.4f;
+
+            if (Keyboard.GetState().IsKeyDown(Keys.E))
+                world.player.r = 0;
+
+            world.updateChunks();
 
             base.Update(gameTime);
         }
 
         protected override void Draw(GameTime gameTime) {
 
-            //GraphicsDevice.Clear(Color.Black);
-            GraphicsDevice.Clear(Color.SkyBlue);
+            GraphicsDevice.Clear(Color.Black);
+            //GraphicsDevice.Clear(Color.SkyBlue);
 
             Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(world.player.r, world.player.t, 0);
             Vector3 lookDirection = Vector3.Transform(Vector3.Forward, rotationMatrix);

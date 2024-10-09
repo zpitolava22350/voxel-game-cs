@@ -10,49 +10,6 @@ using Microsoft.Xna.Framework.Input;
 
 namespace voxel_engine_cs {
 
-    public struct ChunkData {
-        public int[,,] blocks;
-        public VertexCustom[] vertices;
-        public int[] indices;
-        public int primitiveCount;
-
-        public ChunkData(int chunkSize) {
-            blocks = new int[chunkSize, chunkSize, chunkSize];
-            vertices = new VertexCustom[0];
-            indices = new int[0];
-            primitiveCount = 0;
-        }
-
-        public void setBlocks(int[,,] blockArr) {
-            int chunkSize = blockArr.GetLength(0);
-            for (int x2 = 0; x2 < chunkSize; x2++) {
-                for (int y2 = 0; y2 < chunkSize; y2++) {
-                    for (int z2 = 0; z2 < chunkSize; z2++) {
-                        blocks[x2, y2, z2] = blockArr[x2, y2, z2];
-                    }
-                }
-            }
-        }
-
-        public void setVert(VertexCustom[] vert) {
-            vertices = new VertexCustom[vert.Length];
-            for (int v = 0; v < vert.Length; v++) {
-                vertices[v] = vert[v];
-            }
-        }
-
-        public void setInd(int[] ind) {
-            indices = new int[ind.Length];
-            for (int v = 0; v < ind.Length; v++) {
-                indices[v] = ind[v];
-            }
-        }
-
-        public void setPrimCount(int count) {
-            primitiveCount = count;
-        }
-    }
-
     internal class World {
 
         private Random rnd;
@@ -69,7 +26,7 @@ namespace voxel_engine_cs {
 
         private ChunkBuilder builder;
 
-        private int chunkSize = 16;
+        private int chunkSize = 20;
 
         private Task[] generationThreads;
         private Task[] compileThreads;
@@ -80,11 +37,11 @@ namespace voxel_engine_cs {
 
             builder = new ChunkBuilder();
             rnd = new Random();
-            player = new Player(new Vector3(0, 3, 0), 60f);
+            player = new Player(new Vector3(0, 3, 0), 30f);
             chunkGenerateQueue = new Queue<Vector3>();
             chunkCompileQueue = new Queue<Vector3>();
-            generationThreads = new Task[3];
-            compileThreads = new Task[3];
+            generationThreads = new Task[1];
+            compileThreads = new Task[1];
             for (int i = 0; i < generationThreads.Length; i++) {
                 generationThreads[i] = Task.CompletedTask;
             }
@@ -122,11 +79,6 @@ namespace voxel_engine_cs {
 
             Point screenCenter = new Point(ResourceManager.GraphicsDevice.Viewport.Width / 2, ResourceManager.GraphicsDevice.Viewport.Height / 2);
 
-            Matrix rotationMatrix = Matrix.CreateFromYawPitchRoll(player.r, player.t, 0);
-            Vector3 lookDirection = Vector3.Transform(Vector3.Forward, rotationMatrix);
-            Vector3 upDirection = Vector3.Transform(Vector3.Up, rotationMatrix);
-            Matrix viewMatrix = Matrix.CreateLookAt(player.cameraPosition, player.cameraPosition + lookDirection, upDirection);
-
             List<int[]> tmp = new List<int[]>();
 
             foreach (int x in chunk.Keys) {
@@ -139,6 +91,8 @@ namespace voxel_engine_cs {
                 }
             }
 
+            
+
             ResourceManager.GraphicsDevice.SamplerStates[0] = new SamplerState { Filter = TextureFilter.Point, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap };
 
             foreach (var pass in lighting.CurrentTechnique.Passes) {
@@ -147,7 +101,6 @@ namespace voxel_engine_cs {
                     ResourceManager.GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, chunk[tmp[i][0]][tmp[i][1]][tmp[i][2]].vertices, 0, chunk[tmp[i][0]][tmp[i][1]][tmp[i][2]].vertices.Length, chunk[tmp[i][0]][tmp[i][1]][tmp[i][2]].indices, 0, (chunk[tmp[i][0]][tmp[i][1]][tmp[i][2]].indices.Length) / 3, VertexCustom.VertexDeclaration);
                 }
             }
-
             ResourceManager.GraphicsDevice.BlendState = BlendState.AlphaBlend;
             ResourceManager.GraphicsDevice.DepthStencilState = DepthStencilState.None;
             ResourceManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -259,15 +212,38 @@ namespace voxel_engine_cs {
 
         private void genCallback(int[,,] data, int x, int y, int z) {
             ensureChunkExists(x, y, z);
-            chunk[x][y][z].setBlocks(data);
+            chunk[x][y][z].blocks = data;
             chunkCompileQueue.Enqueue(new Vector3(x, y, z));
         }
 
         private void compCallback(VertexCustom[] vert, int[] ind, int primCount, int x, int y, int z) {
             ensureChunkExists(x, y, z);
-            chunk[x][y][z].setPrimCount(primCount);
-            chunk[x][y][z].setVert(vert);
-            chunk[x][y][z].setInd(ind);
+            chunk[x][y][z].primitiveCount = primCount;
+            chunk[x][y][z].vertices = vert;
+            chunk[x][y][z].indices = ind;
+        }
+
+        public bool FogEnabled {
+            set {
+                fogEnabled = value;
+                lighting.Parameters[$"FogEnabled"].SetValue(value);
+            }
+            get { return fogEnabled; }
+        }
+
+        public float FogNear {
+            set {
+                fogNear = value;
+                lighting.Parameters[$"FogNear"].SetValue(value);
+            }
+            get { return fogNear; }
+        }
+        public float FogFar {
+            set {
+                fogFar = value;
+                lighting.Parameters[$"FogFar"].SetValue(value);
+            }
+            get { return fogFar; }
         }
 
     }
